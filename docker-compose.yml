@@ -1,0 +1,58 @@
+###############################################################################
+# docker-compose.yml
+# 27/06/2025 - Luca Volpi - lvolpi@cvservicesconsulting.com
+#
+# File per la creazione dei container dei servizi api, db e frontend
+# NOTA: Da modificare per produzione
+###############################################################################
+
+# Definizione servizi
+services:
+  #Servizio DB MySQL
+  db:
+    build:
+      context: ./db
+      dockerfile: Dockerfile
+    container_name: next-django-jwt-2-db
+    volumes:
+      - next-django-jwt-2-data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    networks:
+      - backend
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+  #Servizio API Django
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    container_name: next-django-jwt-2-api
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./api:/usr/src/app
+    ports:
+      - "8000:8000"
+    networks:
+      - backend
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+    command: python manage.py runserver 0.0.0.0:8000
+
+volumes:
+  next-django-jwt-2-data:
+networks:
+  backend:
