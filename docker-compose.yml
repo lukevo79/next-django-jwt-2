@@ -13,13 +13,17 @@ services:
     build:
       context: ./db
       dockerfile: Dockerfile
-    container_name: next-django-jwt-2-db
+      tags:
+          - "ndj2-db:dev"
+          - "ndj2-db:latest"
+    image: ndj2-db:dev
+    container_name: ndj2-db-dev
     volumes:
-      - next-django-jwt-2-data:/var/lib/mysql
+      - ndj2-dev-data:/var/lib/mysql
     ports:
       - "3306:3306"
     networks:
-      - backend
+      - development
     environment:
       - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
       - MYSQL_DATABASE=${MYSQL_DATABASE}
@@ -35,7 +39,11 @@ services:
     build:
       context: ./api
       dockerfile: Dockerfile
-    container_name: next-django-jwt-2-api
+      tags:
+        - "ndj2-api:dev"
+        - "ndj2-api:latest"
+    image: ndj2-api:dev
+    container_name: ndj2-api-dev
     depends_on:
       db:
         condition: service_healthy
@@ -44,7 +52,7 @@ services:
     ports:
       - "8000:8000"
     networks:
-      - backend
+      - development
     environment:
       - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
       - MYSQL_DATABASE=${MYSQL_DATABASE}
@@ -52,7 +60,35 @@ services:
       - MYSQL_PASSWORD=${MYSQL_PASSWORD}
     command: python manage.py runserver 0.0.0.0:8000
 
+  #Servizio Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      tags:
+        - "ndj2-frontend:dev"
+        - "ndj2-frontend:latest"
+    image: ndj2-frontend:dev
+    container_name: ndj2-frontend-dev
+    # restart: always
+    depends_on:
+      api:
+        condition: service_started
+    volumes:
+      - ./frontend:/usr/src/app
+      - ndj2-frontend-dev-node-modules:/usr/src/app/node_modules
+    ports:
+      - "3000:3000"
+    networks:
+      - development
+    environment:
+      - NODE_ENV=${NODE_ENV_DEV}
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL_DEV}
+      - WATCHPACK_POLLING=${WATCHPACK_POLLING_DEV}
+    command: npm run dev -- -H 0.0.0.0
+
 volumes:
-  next-django-jwt-2-data:
+  ndj2-dev-data:
+  ndj2-frontend-dev-node-modules:
 networks:
-  backend:
+  development:

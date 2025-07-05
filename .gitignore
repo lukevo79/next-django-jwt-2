@@ -135,13 +135,22 @@ Thumbs.db
 ehthumbs.db
 Desktop.ini
 
-# Node.js (per frontend se presente in futuro)
-# frontend/node_modules/
-# frontend/npm-debug.log*
-# frontend/yarn-debug.log*
-# frontend/yarn-error.log*
-# frontend/.npm
-# frontend/.yarn-integrity
+# Next.js (frontend/)
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/build/
+frontend/dist/
+frontend/.vercel/
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+frontend/.npm
+frontend/.yarn-integrity
+frontend/.env.local
+frontend/.env.development.local
+frontend/.env.test.local
+frontend/.env.production.local
 
 # Build outputs
 dist/
