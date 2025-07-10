@@ -8,6 +8,11 @@
  * Questo middleware gestisce l'autenticazione JWT per le route protette dell'applicazione.
  * Implementa un sistema di refresh automatico dei token scaduti e reindirizzamento
  * degli utenti non autenticati alla pagina di login.
+ * 
+ * GESTIONE ROUTE:
+ * - Pagine protette: reindirizzamento al login se non autenticato
+ * - API route protette: risposta 401 se non autenticato
+ * - Route di autenticazione: sempre accessibili
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -182,22 +187,24 @@ const isAuthenticated = async (request: NextRequest): Promise<{authenticated: bo
  * Questo middleware implementa un sistema completo di autenticazione JWT:
  * 
  * FLUSSO DI FUNZIONAMENTO:
- * 1. Controlla se il path richiesto è protetto utilizzando PROTECTED_PATHS
+ * 1. Controlla se il path richiesto è protetto (pagine o API route)
  * 2. Se il path non è protetto, permette l'accesso immediato
  * 3. Per i path protetti, verifica l'autenticazione dell'utente
- * 4. Se l'utente non è autenticato, reindirizza alla pagina di login
+ * 4. Se l'utente non è autenticato:
+ *    - Per le pagine: reindirizza alla pagina di login
+ *    - Per le API route: restituisce 401 Unauthorized
  * 5. Se il token è scaduto, tenta automaticamente il refresh
  * 6. Se il refresh riesce, aggiorna i cookie e permette l'accesso
  * 7. Se l'utente è autenticato, permette l'accesso alle pagine protette
  * 
  * GESTIONE ERRORI:
- * - Token mancante: reindirizzamento al login
+ * - Token mancante: reindirizzamento al login (pagine) o 401 (API)
  * - Token scaduto: tentativo di refresh automatico
- * - Refresh fallito: reindirizzamento al login
- * - Token invalido: reindirizzamento al login
+ * - Refresh fallito: reindirizzamento al login (pagine) o 401 (API)
+ * - Token invalido: reindirizzamento al login (pagine) o 401 (API)
  * 
  * @param request - La richiesta Next.js in arrivo
- * @returns NextResponse - Risposta con eventuali reindirizzamenti o cookie aggiornati
+ * @returns NextResponse - Risposta con eventuali reindirizzamenti, cookie aggiornati o errori 401
  * 
  * @example
  * // Il middleware viene chiamato automaticamente da Next.js
@@ -207,47 +214,44 @@ export async function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname;
   
   console.log(`🔍 Path corrente: ${path}`);
-  
-  // Controlla se il path è protetto utilizzando la configurazione
-  const isProtectedPath = PROTECTED_PATHS.some(protectedPath => 
+
+  // Controlla se è una pagina protetta
+  const isProtectedPage = PROTECTED_PATHS.some(protectedPath => 
     path.startsWith(protectedPath)
   );
-  
-  // Se non è un path protetto, permette l'accesso immediato
-  if (!isProtectedPath) {
+
+  // Se non è una pagina protetta, permette l'accesso
+  if (!isProtectedPage) {
     console.log('✅ Path pubblico, accesso permesso');
     console.log('─'.repeat(50));
     return NextResponse.next();
   }
-  
-  console.log('🔒 Path protetto rilevato, verificando autenticazione...');
-  
+
+  console.log('🔒 Pagina protetta rilevata, verificando autenticazione...');
+
   // Verifica l'autenticazione dell'utente
   const authResult = await isAuthenticated(request);
-  
+
   if (!authResult.authenticated) {
-    console.log('❌ Utente non autenticato, reindirizzamento al login');
+    console.log('❌ Utente non autenticato');
+    // Per le pagine, reindirizza al login
+    console.log('🔄 Reindirizzamento al login per pagina protetta');
     console.log('─'.repeat(50));
-    
-    // Reindirizza alla pagina di login (root path)
     const loginUrl = new URL('/', request.url);
     return NextResponse.redirect(loginUrl);
   }
-  
+
   // Se il refresh è stato necessario, aggiorna i cookie nella risposta
   if (authResult.needsRefresh && authResult.newCookies) {
-    
     // Crea la risposta normale per continuare la richiesta
     const response = NextResponse.next();
-    
     // Imposta i nuovi cookie nella risposta per aggiornare la sessione
     response.headers.set('set-cookie', authResult.newCookies);
-    
     console.log('✅ Cookie aggiornati, accesso permesso');
     console.log('─'.repeat(50));
     return response;
   }
-  
+
   console.log('✅ Utente autenticato, accesso permesso');
   console.log('─'.repeat(50));
   return NextResponse.next();
@@ -257,24 +261,27 @@ export async function middleware(request: NextRequest) {
  * Configurazione del matcher per il middleware.
  * 
  * Definisce quali route devono essere processate dal middleware.
- * Esclude le route API, i file statici e le risorse di Next.js
- * per evitare interferenze con il funzionamento dell'applicazione.
+ * Include le API route per gestire l'autenticazione anche per le chiamate API.
  * 
  * PATTERN ESCLUSI:
- * - api: route API del frontend
  * - _next/static: file statici di Next.js
  * - _next/image: ottimizzazione immagini di Next.js
  * - favicon.ico: icona del browser
+ * 
+ * PATTERN INCLUSI:
+ * - Tutte le pagine dell'applicazione
+ * - Tutte le API route (incluse quelle protette)
  */
 export const config = {
   matcher: [
     /*
      * Match all request paths except for the ones starting with:
-     * - api (API routes)
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
+     * 
+     * Include tutte le pagine e tutte le API route per gestire l'autenticazione
      */
-    '/((?!api|_next/static|_next/image|favicon.ico).*)',
+    '/((?!_next/static|_next/image|favicon.ico).*)',
   ],
 };

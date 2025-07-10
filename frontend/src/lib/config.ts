@@ -46,7 +46,7 @@ export const JWT_CONFIG = {
 } as const;
 
 /**
- * Configurazione per i percorsi protetti
+ * Configurazione per i percorsi protetti (pagine)
  * 
  * Questi percorsi richiedono autenticazione per essere accessibili
  */
@@ -57,10 +57,36 @@ export const PROTECTED_PATHS = [
 ] as const;
 
 /**
- * Configurazione per i percorsi pubblici
+ * Configurazione per i percorsi pubblici (pagine)
  * 
  * Questi percorsi sono sempre accessibili senza autenticazione
  */
 export const PUBLIC_PATHS = [
   '/',
+] as const;
+
+/**
+ * Configurazione per le API route protette
+ * 
+ * Queste API route richiedono autenticazione per essere accessibili.
+ * Le route di autenticazione (/api/users/login e /api/users/refresh-token)
+ * sono automaticamente escluse da questa lista.
+ */
+export const PROTECTED_API_ROUTES = [
+  '/api/users/profile',
+  '/api/users/settings',
+  '/api/data',
+  '/api/admin',
+] as const;
+
+/**
+ * Configurazione per le API route pubbliche
+ * 
+ * Queste API route sono sempre accessibili senza autenticazione.
+ * Include le route di autenticazione che devono essere sempre accessibili.
+ */
+export const PUBLIC_API_ROUTES = [
+  '/api/users/login',
+  '/api/users/refresh-token',
+  '/api/health',
 ] as const; 
