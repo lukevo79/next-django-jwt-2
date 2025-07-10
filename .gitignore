@@ -173,3 +173,9 @@ coverage.xml
 # Django specific (nella cartella api/)
 api/staticfiles/
 api/static_collected/
+
+# Python cache files (globali per tutto il progetto)
+__pycache__/
+*.py[cod]
+*$py.class
+*.so

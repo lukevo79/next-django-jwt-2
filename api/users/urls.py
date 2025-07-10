@@ -7,11 +7,15 @@ Descrizione: File per le URL dell'applicazione users
 """
 
 from django.urls import path    
-from .views import LoginView, LogoutView, CookieTokenRefreshView
+from .views import LoginView, LogoutView, CookieTokenRefreshView, UserRetriveView
 
 # Configurazione delle URL patterns per l'applicazione users
 # Ogni path definisce un endpoint API con il relativo view associato
 urlpatterns = [
+    # Endpoint per il recupero dei dettagli dell'utente autenticato
+    # GET /api/users/me/ - Recupera i dettagli dell'utente autenticato
+    # Restituisce i dati dell'utente autenticato
+    path('profile/', UserRetriveView.as_view(), name='profile'),
     # Endpoint per l'autenticazione degli utenti
     # POST /api/users/login/ - Gestisce il login degli utenti
     # Restituisce un JWT token in caso di successo

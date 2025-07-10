@@ -8,12 +8,14 @@ Descrizione: File per le viste dell'applicazione users
 
 from typing import Optional
 from rest_framework.views import APIView
+from rest_framework.generics import RetrieveAPIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenRefreshView
 from rest_framework_simplejwt.exceptions import InvalidToken
+from rest_framework.permissions import IsAuthenticated
 from .serializers import LoginNDUserSerializer, NDUserSerializer
 
 
@@ -40,8 +42,8 @@ COOKIE_NAMES = {
 
 COOKIE_SETTINGS = {
     "httponly": True,
-    "secure": True,
-    "samesite": "None",
+    "secure": True,  # True per sviluppo locale (HTTPS)
+    "samesite": "None",  # Lax per sviluppo locale
 }
 
 
@@ -62,9 +64,13 @@ class LoginView(APIView):
         Returns:
             Response con dati utente e cookie JWT impostati
         """
+        print(f"[DEBUG] Login request received from: {request.META.get('HTTP_ORIGIN', 'Unknown')}")
+        print(f"[DEBUG] Request headers: {dict(request.headers)}")
+        
         serializer = LoginNDUserSerializer(data=request.data)
 
         if not serializer.is_valid():
+            print(f"[DEBUG] Validation errors: {serializer.errors}")
             return Response(
                 serializer.errors, 
                 status=status.HTTP_400_BAD_REQUEST
@@ -74,12 +80,16 @@ class LoginView(APIView):
         refresh = RefreshToken.for_user(user)
         access_token = str(refresh.access_token)
         
+        print(f"[DEBUG] User authenticated: {user.username}")
+        print(f"[DEBUG] Access token generated: {access_token[:20]}...")
+        
         response = Response(
             {"user": NDUserSerializer(user).data},
             status=status.HTTP_200_OK
         )
         
         self._set_auth_cookies(response, access_token, str(refresh))
+        print(f"[DEBUG] Cookies set in response: {response.cookies}")
         return response
     
     def _set_auth_cookies(
@@ -96,6 +106,8 @@ class LoginView(APIView):
             access_token: Token di accesso JWT
             refresh_token: Token di refresh JWT
         """
+        print(f"[DEBUG] Setting cookies with settings: {COOKIE_SETTINGS}")
+        
         response.set_cookie(
             key=COOKIE_NAMES["ACCESS_TOKEN"],
             value=access_token,
@@ -106,6 +118,8 @@ class LoginView(APIView):
             value=refresh_token,
             **COOKIE_SETTINGS
         )
+        
+        print(f"[DEBUG] Cookies set - Access: {COOKIE_NAMES['ACCESS_TOKEN']}, Refresh: {COOKIE_NAMES['REFRESH_TOKEN']}")
 
 
 class LogoutView(APIView):
@@ -215,3 +229,15 @@ class CookieTokenRefreshView(TokenRefreshView):
                 },
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+        
+class UserRetriveView(RetrieveAPIView):
+    """
+    Vista per recuperare i dettagli dell'utente autenticato.
+    
+    Restituisce i dati dell'utente autenticato.
+    """
+    permission_classes = [IsAuthenticated]
+    serializer_class = NDUserSerializer
+    
+    def get_object(self):
+        return self.request.user
